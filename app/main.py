@@ -4,7 +4,6 @@
 import json
 import os
 import argparse
-import distutils
 import completion
 import githubs
 

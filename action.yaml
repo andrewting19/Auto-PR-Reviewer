@@ -36,9 +36,6 @@ runs:
   - --temperature=${{ inputs.temperature }}
   - --frequency-penalty=${{ inputs.frequency_penalty }}
   - --presence-penalty=${{ inputs.presence_penalty }}
-  - --review-per-file=${{ inputs.review_per_file }}
-  - --comment-per-file=${{ inputs.comment_per_file }}
-  - --blocking=${{ inputs.blocking }}
 branding:
   icon: 'compass'
   color: 'blue'
