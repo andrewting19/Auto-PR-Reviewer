@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+import json
 import os
 import requests
 from github import Github
@@ -71,54 +72,53 @@ class GithubClient:
                 return line
         return ''
 
-    def get_completion(self, prompt) -> str:
-        '''Get the completion'''
+    def get_issues(self, prompt) -> list:
+        '''Gets a list of issues: { severity: int, line: int, body: str } '''
         try:
             completion = self.openai_client.get_completion(prompt)
-            return completion
+            if "function_call" in completion:
+                return json.loads(completion["function_call"]["arguments"])
+            return []
         except Exception as e:
-            if self.blocking:
-                raise e
-            else:
-                print(f"OpenAI failed on prompt {prompt} with exception {e}")
-                return ''
+            print(f"OpenAI failed on prompt {prompt} with exception {e}")
+            return []
 
     def review_pr(self, payload):
         '''Review a PR'''
         pr, changes = self.get_pull_request(payload)
-        if len(self.openai_client.encoder.encode(changes)) < self.review_tokens and not self.review_per_file:
-            # Review the full PR changes together
-            prompt = self.openai_client.get_pr_prompt(
-                pr.title, pr.body, changes)
-            completion = self.get_completion(prompt)
-            if completion != '':
-                reviewComments = f'''@{pr.user.login} Thanks for your contributions!\n\n{completion}'''
-                pr.create_issue_comment(reviewComments)
-            return
 
         # Review each file changes separately
         files_changed = pr.get_files()
-        reviews = []
+        total_severity = 0
+        review_comments = []
         for file in files_changed:
             file_changes = self.cut_changes(
                 file.previous_filename, file.filename, file.patch)
             prompt = self.openai_client.get_file_prompt(
                 pr.title, pr.body, file.filename, file_changes)
-            completion = self.get_completion(prompt)
-            if completion == '':
-                continue
-            if self.comment_per_file:
-                # Create a review comment on the file
-                reviewComments = f'''@{pr.user.login} Thanks for your contributions!\n\n{completion}'''
-                pr.create_review_comment(body=reviewComments,
-                                         commit_id=list(pr.get_commits())[-1],
-                                         path=file.filename,
-                                         position=1)
-            else:
-                reviews = reviews + \
-                    [f"**Here are review comments for file {file.filename}:**\n{completion}\n\n"]
+            issues = self.get_issues(prompt)
+            for issue in issues:
+                severity = issue.get("severity", 0)
+                line = issue.get("line", -1)
+                body = issue.get("body", "")
 
-        if len(reviews) > 0:
-            # Create a review comment on the PR
-            reviewComments = f'''@{pr.user.login} Thanks for your contributions!\n\n{''.join(reviews)}'''
-            pr.create_issue_comment(reviewComments)
+                # Create a review comment on the file
+                review_comments.append(self.submit_pr_comment(pr, file.filename, severity, line, body))
+                total_severity += severity
+
+        review_status = "APPROVED" if total_severity < 5 else "REQUEST_CHANGES"
+        review_body = f"Total Severity: {total_severity}\nStatus: {review_status}\nTotal Comments: {len(review_comments)}"
+        pr.create_review(list(pr.get_commits())[-1], body=review_body, event=review_status, comments=review_comments)
+
+    def submit_pr_comment(self, pr, filename, severity, line, body):
+        content = f"""Severity: {severity}\n\n{body}"""
+        if line < 0:
+            return pr.create_review_comment(body=content,
+                                     commit_id=list(pr.get_commits())[-1],
+                                     path=filename,
+                                     subject_type="file")
+        else:
+            return pr.create_review_comment(body=content,
+                                     commit_id=list(pr.get_commits())[-1],
+                                     path=filename,
+                                     line=line)

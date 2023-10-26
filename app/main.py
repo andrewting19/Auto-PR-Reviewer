@@ -32,15 +32,6 @@ parser.add_argument("--frequency-penalty",
 parser.add_argument("--presence-penalty",
                     help="Presence penalty for the model",
                     type=int, default=0)
-parser.add_argument("--review-per-file",
-                    help="Send out review requests per file",
-                    type=distutils.util.strtobool, default=False)
-parser.add_argument("--comment-per-file",
-                    help="Post review comments per file",
-                    type=distutils.util.strtobool, default=True)
-parser.add_argument("--blocking",
-                    help="Blocking the pull requests on OpenAI failures",
-                    type=distutils.util.strtobool, default=False)
 args = parser.parse_args()
 
 
@@ -52,9 +43,9 @@ openai_client = completion.OpenAIClient(
     presence_penalty=args.presence_penalty)
 github_client = githubs.GithubClient(
     openai_client=openai_client,
-    review_per_file=args.review_per_file,
-    comment_per_file=args.comment_per_file,
-    blocking=args.blocking)
+    review_per_file=True,
+    comment_per_file=False,
+    blocking=False)
 
 
 # Load github workflow event

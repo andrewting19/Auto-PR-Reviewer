@@ -5,6 +5,7 @@ import os
 import backoff
 import openai
 import tiktoken
+from prompts import system_prompt
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 if os.getenv("OPENAI_API_BASE"):
@@ -12,17 +13,6 @@ if os.getenv("OPENAI_API_BASE"):
     if "azure" in os.getenv("OPENAI_API_BASE"):
         openai.api_type = "azure"
         openai.api_version = "2023-03-15-preview"
-system_prompt = '''As a tech reviewer, please provide an in-depth review of the
-following pull request. Your task is to carefully analyze the title, body, and
-changes made in the pull request and identify any problems that need addressing.
-Please provide clear descriptions of each problem and offer constructive suggestions
-for how to address them. Additionally, please consider ways to optimize the changes
-made in the pull request. You should focus on providing feedback that will help
-improve the quality of the codebase while also remaining concise and clear in your
-explanations. Please note that unnecessary explanations or summaries should be avoided
-as they may delay the review process. Your feedback should be provided in a timely
-manner, using language that is easy to understand and follow.
-'''
 
 
 class OpenAIClient:
@@ -58,24 +48,44 @@ class OpenAIClient:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ]
+        functions = [
+            {
+                "name": "raise_issues",
+                "description": "Adds a review comment for a specific line of code in Github pull request",
+                "parameters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "severity": {
+                                "type": "int",
+                                "description": "The severity of the issue, measured as an integer points. 1 point for nits, 3 points for optimizations, and 5 points for errors."
+                            },
+                            "line": {
+                                "type": "int",
+                                "description": "The line of the blob in the pull request diff that the comment applies to. Set line = -1 to comment on the whole file."
+                            },
+                            "body": {
+                                "type": "string",
+                                "description": "The text of the review comment"
+                            }
+                        },
+                        "required": ["severity", "line", "body"]
+                    }
+                }
+            }
+        ]
         response = openai.ChatCompletion.create(
             messages=messages,
+            functions=functions,
+            function_call={"name": "raise_issues"},
             temperature=self.temperature,
             frequency_penalty=self.frequency_penalty,
             presence_penalty=self.presence_penalty,
             request_timeout=100,
             max_tokens=self.max_tokens - len(self.encoder.encode(f'{system_prompt}\n{prompt}')),
-            stream=True, **self.openai_kwargs)
-
-        completion_text = ''
-        for event in response:
-            if event["choices"] is not None and len(event["choices"]) > 0:
-                choice = event["choices"][0]
-                if choice.get("delta", None) is not None and choice["delta"].get("content", None) is not None:
-                    completion_text += choice["delta"]["content"]
-                if choice.get("message", None) is not None and choice["message"].get("content", None) is not None:
-                    completion_text += choice["message"]["content"]
-        return completion_text
+            stream=False, **self.openai_kwargs)
+        return response.choices[0].message
 
     def get_completion_text(self, prompt) -> str:
         '''Invoke OpenAI API to get text completion'''
@@ -88,40 +98,33 @@ class OpenAIClient:
             presence_penalty=self.presence_penalty,
             request_timeout=100,
             max_tokens=self.max_tokens - len(self.encoder.encode(prompt_message)),
-            stream=True, **self.openai_kwargs)
-
-        completion_text = ''
-        for event in response:
-            if event["choices"] is not None and len(event["choices"]) > 0:
-                completion_text += event["choices"][0]["text"]
-        return completion_text
+            stream=False, **self.openai_kwargs)
+        return response.choices[0].message
 
     def get_pr_prompt(self, title, body, changes) -> str:
         '''Generate a prompt for a PR review'''
-        prompt = f'''Here are the title, body and changes for this pull request:
+        return f"""
+        ### Pull Request Title: {title}
 
-Title: {title}
+        ### Pull Request Body: 
+        {body}
 
-Body: {body}
-
-Changes:
-```
-{changes}
-```
-    '''
-        return prompt
+        ### Pull Request Changes:
+        ```
+        {changes}
+        ```
+        """
 
     def get_file_prompt(self, title, body, filename, changes) -> str:
         '''Generate a prompt for a file review'''
-        prompt = f'''Here are the title, body and changes for this pull request:
+        return f"""        
+        ### Pull Request Title: {title}
 
-Title: {title}
+        ### Pull Request Body: 
+        {body}
 
-Body: {body}
-
-And bellowing are changes for file {filename}:
-```
-{changes}
-```
-    '''
-        return prompt
+        ### Changes for file {filename}:
+        ```
+        {changes}
+        ```
+        """
