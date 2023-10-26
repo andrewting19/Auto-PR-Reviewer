@@ -115,11 +115,11 @@ class GithubClient:
         content = f"""Severity: {severity}\n\n{body}"""
         if line < 0:
             return pr.create_review_comment(body=content,
-                                     commit_id=list(pr.get_commits())[-1],
+                                     commit=list(pr.get_commits())[-1],
                                      path=filename,
                                      subject_type="file")
         else:
             return pr.create_review_comment(body=content,
-                                     commit_id=list(pr.get_commits())[-1],
+                                     commit=list(pr.get_commits())[-1],
                                      path=filename,
                                      line=line)
