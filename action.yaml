@@ -15,10 +15,6 @@ inputs:
     description: "OpenAI model name"
     default: "gpt-3.5-turbo"
     required: false
-  blocking:
-    description: "Blocking the pull requests on OpenAI failures"
-    default: 'False'
-    required: false
   temperature:
     description: "Temperature for the model"
     default: '0.2'
@@ -30,14 +26,6 @@ inputs:
   presence_penalty:
     description: "Presence penalty for the model"
     default: '0'
-    required: false
-  review_per_file:
-    description: "Send out review requests per file"
-    default: 'False'
-    required: false
-  comment_per_file:
-    description: "Post review comments per file"
-    default: 'True'
     required: false
 
 runs:
