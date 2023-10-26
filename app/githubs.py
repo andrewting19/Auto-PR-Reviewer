@@ -77,7 +77,7 @@ class GithubClient:
         try:
             completion = self.openai_client.get_completion(prompt)
             if completion is not None and "function_call" in completion:
-                return json.loads(completion["function_call"]["arguments"])
+                return json.loads(completion["function_call"]["arguments"]).get("data", [])
             return []
         except Exception as e:
             print(f"OpenAI failed on prompt {prompt} with exception {e}")
@@ -98,6 +98,7 @@ class GithubClient:
                 pr.title, pr.body, file.filename, file_changes)
             issues = self.get_issues(prompt)
             for issue in issues:
+                print(issue)
                 severity = issue.get("severity", 0)
                 line = issue.get("line", -1)
                 body = issue.get("body", "")
