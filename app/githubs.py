@@ -76,7 +76,7 @@ class GithubClient:
         '''Gets a list of issues: { severity: int, line: int, body: str } '''
         try:
             completion = self.openai_client.get_completion(prompt)
-            if "function_call" in completion:
+            if completion is not None and "function_call" in completion:
                 return json.loads(completion["function_call"]["arguments"])
             return []
         except Exception as e:

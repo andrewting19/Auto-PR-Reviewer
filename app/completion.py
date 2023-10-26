@@ -8,11 +8,6 @@ import tiktoken
 from prompts import system_prompt
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-if os.getenv("OPENAI_API_BASE"):
-    openai.api_base = os.getenv("OPENAI_API_BASE")
-    if "azure" in os.getenv("OPENAI_API_BASE"):
-        openai.api_type = "azure"
-        openai.api_version = "2023-03-15-preview"
 
 
 class OpenAIClient:
@@ -28,8 +23,7 @@ class OpenAIClient:
         self.max_tokens = max_tokens
         self.min_tokens = min_tokens
         self.openai_kwargs = {'model': self.model}
-        if openai.api_type == "azure":
-            self.openai_kwargs = {'engine': self.model}
+        openai.api_key = os.getenv("OPENAI_API_KEY")
 
     @backoff.on_exception(backoff.expo,
                           (openai.error.RateLimitError,
@@ -39,8 +33,6 @@ class OpenAIClient:
     def get_completion(self, prompt) -> str:
         if self.model.startswith("gpt-"):
             return self.get_completion_chat(prompt)
-        else:
-            return self.get_completion_text(prompt)
 
     def get_completion_chat(self, prompt) -> str:
         '''Invoke OpenAI API to get chat completion'''
@@ -53,25 +45,31 @@ class OpenAIClient:
                 "name": "raise_issues",
                 "description": "Adds a review comment for a specific line of code in Github pull request",
                 "parameters": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "severity": {
-                                "type": "int",
-                                "description": "The severity of the issue, measured as an integer points. 1 point for nits, 3 points for optimizations, and 5 points for errors."
-                            },
-                            "line": {
-                                "type": "int",
-                                "description": "The line of the blob in the pull request diff that the comment applies to. Set line = -1 to comment on the whole file."
-                            },
-                            "body": {
-                                "type": "string",
-                                "description": "The text of the review comment"
+                    "type": "object",
+                    "properties": {
+                        "data": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "severity": {
+                                        "type": "integer",
+                                        "description": "The severity of the issue, measured as an integer points. 1 point for nits, 3 points for optimizations, and 5 points for errors."
+                                    },
+                                    "line": {
+                                        "type": "integer",
+                                        "description": "The line of the blob in the pull request diff that the comment applies to. Set line = -1 to comment on the whole file."
+                                    },
+                                    "body": {
+                                        "type": "string",
+                                        "description": "The text of the review comment"
+                                    }
+                                },
+                                "required": ["severity", "line", "body"]
                             }
-                        },
-                        "required": ["severity", "line", "body"]
-                    }
+                        }
+                    },
+                    "required": ["data"],
                 }
             }
         ]
@@ -128,3 +126,5 @@ class OpenAIClient:
         {changes}
         ```
         """
+
+
