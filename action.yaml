@@ -13,7 +13,7 @@ inputs:
     required: false
   model:
     description: "OpenAI model name"
-    default: "gpt-3.5-turbo"
+    default: "gpt-4"
     required: false
   temperature:
     description: "Temperature for the model"

@@ -140,7 +140,7 @@ class OpenAIClient:
 if __name__ == "__main__":
     import githubs
     openai_client = OpenAIClient(
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         temperature=0.2,
         frequency_penalty=0,
         presence_penalty=0)
