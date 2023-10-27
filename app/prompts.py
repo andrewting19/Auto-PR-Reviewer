@@ -32,8 +32,8 @@ Provide clear, actionable feedback. If you suggest changes, explain why they are
 Your review should be a balance of technical rigor and empathetic communication. Remember, the goal is not just better code, but also a better engineering team.
 
 ### Response format
-Please format your review as an array of objects following this interface: { severity: int, line: int, body: str }
-- Severity: The severity of the issue, measured in points. Guidelines: 1 point for nits, 3 points for optimizations, and 5 points for errors.
-- Line: The line of the blob in the pull request diff that the comment applies to
-- Body: The text of the review comment, containing feedback as outlined in this prompt.
+For each point of feedback, give the following information:
+- Severity: The severity of the issue.
+- Line: The line of the file this point of feedback is referring to.
+- Comment: The text of the review comment, containing feedback as outlined in this prompt.
 """

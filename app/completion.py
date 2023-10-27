@@ -30,11 +30,11 @@ class OpenAIClient:
                            openai.error.APIConnectionError,
                            openai.error.ServiceUnavailableError),
                           max_time=300)
-    def get_completion(self, prompt) -> str:
+    def get_completion(self, prompt, with_function=True) -> str:
         if self.model.startswith("gpt-"):
-            return self.get_completion_chat(prompt)
+            return self.get_completion_chat(prompt, with_function)
 
-    def get_completion_chat(self, prompt) -> str:
+    def get_completion_chat(self, prompt, with_function=True) -> str:
         '''Invoke OpenAI API to get chat completion'''
         messages = [
             {"role": "system", "content": system_prompt},
@@ -73,16 +73,26 @@ class OpenAIClient:
                 }
             }
         ]
-        response = openai.ChatCompletion.create(
-            messages=messages,
-            functions=functions,
-            function_call={"name": "raise_issues"},
-            temperature=self.temperature,
-            frequency_penalty=self.frequency_penalty,
-            presence_penalty=self.presence_penalty,
-            request_timeout=100,
-            max_tokens=self.max_tokens - len(self.encoder.encode(f'{system_prompt}\n{prompt}')),
-            stream=False, **self.openai_kwargs)
+        if with_function:
+            response = openai.ChatCompletion.create(
+                messages=messages,
+                functions=functions,
+                function_call={"name": "raise_issues"},
+                temperature=self.temperature,
+                frequency_penalty=self.frequency_penalty,
+                presence_penalty=self.presence_penalty,
+                request_timeout=100,
+                max_tokens=self.max_tokens - len(self.encoder.encode(f'{system_prompt}\n{prompt}')),
+                stream=False, **self.openai_kwargs)
+        else:
+            response = openai.ChatCompletion.create(
+                messages=messages,
+                temperature=self.temperature,
+                frequency_penalty=self.frequency_penalty,
+                presence_penalty=self.presence_penalty,
+                request_timeout=100,
+                max_tokens=self.max_tokens - len(self.encoder.encode(f'{system_prompt}\n{prompt}')),
+                stream=False, **self.openai_kwargs)
         return response.choices[0].message
 
     def get_completion_text(self, prompt) -> str:
@@ -104,7 +114,7 @@ class OpenAIClient:
         return f"""
         ### Pull Request Title: {title}
 
-        ### Pull Request Body: 
+        ### Pull Request Description: 
         {body}
 
         ### Pull Request Changes:
@@ -118,12 +128,25 @@ class OpenAIClient:
         return f"""        
         ### Pull Request Title: {title}
 
-        ### Pull Request Body: 
+        ### Pull Request Description: 
         {body}
 
         ### Changes for file {filename}. Removed lines begin with minus (-). Added lines begin with plus (+):
         ```
         {changes}
+        ```
+        """
+
+    def get_file_prompt_contents(self, title, body, filename, contents) -> str:
+        return f"""        
+        ### Pull Request Title: {title}
+
+        ### Pull Request Description: 
+        {body}
+
+        ### Contents for file {filename}:
+        ```
+        {contents}
         ```
         """
 

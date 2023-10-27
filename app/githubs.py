@@ -83,10 +83,18 @@ class GithubClient:
             print(f"OpenAI failed on prompt {prompt} with exception {e}")
             return []
 
-    def review_pr(self, payload):
-        '''Review a PR'''
-        pr, changes = self.get_pull_request(payload)
+    def get_file_comments(self, prompt):
+        try:
+            completion = self.openai_client.get_completion(prompt, with_function=False)
+            if completion is not None and "contents" in completion:
+                return completion["contents"]
+            return None
+        except Exception as e:
+            print(f"OpenAI failed on prompt {prompt} with exception {e}")
+            return None
 
+
+    def review_by_issues(self, pr):
         # Review each file changes separately
         files_changed = pr.get_files()
         total_severity = 0
@@ -114,8 +122,24 @@ class GithubClient:
                 total_severity += severity
 
         review_status = "APPROVED" if total_severity < 5 else "REQUEST_CHANGES"
-        review_body = f"Total Severity: {total_severity}\nStatus: {review_status}\nTotal Comments: {len(review_comments)}"
-        pr.create_review(list(pr.get_commits())[-1], body=review_body, event=review_status) #, comments=review_comments)
+        review_body = f"Status: {review_status}\nTotal Severity: {total_severity}\nTotal Comments: {len(review_comments)}"
+        pr.create_review(list(pr.get_commits())[-1], body=review_body,
+                         event=review_status)  # , comments=review_comments)
+
+    def review_by_files(self, pr):
+        repo = self.github_client.get_repo(os.getenv("GITHUB_REPOSITORY"))
+        latest_commit = list(pr.get_commits())[-1]
+        for file in latest_commit.files:
+            filename = file.filename
+            file_contents = repo.get_contents(filename, ref=latest_commit.sha).decoded_content
+            prompt = self.openai_client.get_file_prompt_contents(pr.title, pr.body, filename, file_contents)
+            comments = self.get_file_comments(prompt)
+            pr.create_review_comment(body=comments, commit=latest_commit, path=filename, subject_type="file")
+
+    def review_pr(self, payload):
+        '''Review a PR'''
+        pr, changes = self.get_pull_request(payload)
+        self.review_by_files(pr)
 
     def submit_pr_comment(self, pr, filename, severity, line, body):
         content = f"""Severity: {severity}\nLine: {line}\n\n{body}"""
