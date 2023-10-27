@@ -23,7 +23,6 @@ class OpenAIClient:
         self.max_tokens = max_tokens
         self.min_tokens = min_tokens
         self.openai_kwargs = {'model': self.model}
-        openai.api_key = os.getenv("OPENAI_API_KEY")
 
     @backoff.on_exception(backoff.expo,
                           (openai.error.RateLimitError,
@@ -152,5 +151,23 @@ class OpenAIClient:
 
 
 if __name__ == "__main__":
-    from secret import *
-    openai.api_key = OPENAI_API_KEY
+    openai_client = OpenAIClient(
+        model="gpt-3.5-turbo",
+        temperature=0.2,
+        frequency_penalty=0,
+        presence_penalty=0)
+    prompt = '''
+    ### Pull Request Title: test
+
+        ### Pull Request Description: 
+        Testing this 
+
+        ### Contents for file services/Announcers.py:
+        ```
+        b'import time\nimport numpy as np\nimport pandas as pd\nfrom controllers.discord import *\n\n\nclass Announcer:\n\n    def print_ou_lines(self, df, start_count=1, quiet=False):\n        count = start_count\n        printed_str = ""\n        for i in range(len(df)):\n            row = df.iloc[i]\n            league = f"{row[\'league\'][0:3]:<3}" if row["league"] is not None else "   "\n            role = f" ({row[\'role\']})"\n            m = f"Map {row[\'map\']:<3}"\n            next_line = f"{count:>3} | Prob {max(row[\'bet_prob\'], 1 - row[\'bet_prob\'])*100:.1f}% | {league} | {row[\'name\'][0:13] + role:^18} {\'OVER \' if row[\'bet_prob\'] > 0.5 else \'UNDER\'}  {row[\'line\']:<4} kills | {m} | {row[\'team\'].title() if not pd.isna(row[\'team\']) else row[\'team\']} vs {row[\'vs_team\'].title() if not pd.isna(row[\'vs_team\']) else row[\'vs_team\']} | {row[\'source\']}"\n            printed_str += next_line + "\\n"\n            if not quiet:\n                print(next_line)\n            count += 1\n        return printed_str, count\n\n    def announce_kill_lines(self, df, source="", alttext=None):\n        count = 1\n        text = alttext if alttext is not None else f"\xf0\x9f\xa4\x96\xf0\x9f\xa7\xa0\xf0\x9f\x92\xaf Get your AI generated {source} bets right here"\n        announce_lines_on_discord(\n            text, everyone=False, gamba_num=3 if source == "PrizePicks" else 2)\n        df["max_bet_prob_or_complement"] = np.maximum(\n            df["bet_prob"], 1 - df["bet_prob"])\n        df = df.sort_values(by="max_bet_prob_or_complement", ascending=False)\n        for i in range(0, len(df), 10):\n            printed_str, count = self.print_ou_lines(\n                df.iloc[i:i + 10], count, quiet=True)\n            announce_lines_on_discord(\n                printed_str, everyone=False, code_text=True, gamba_num=3 if source == "PrizePicks" else 2)\n            time.sleep(0.5)\n\n    def announce_changes(self, new_lines=None, deleted_lines=None):\n        """\n        Announces any new or deleted PrizePicks or Underdog lines in their respective channels. \n        """\n        for lines, deleted in zip([deleted_lines, new_lines], [True, False]):\n            if lines is None or len(lines) == 0:\n                continue\n            for source in ["PrizePicks", "Underdog"]:\n                temp = lines[lines["source"] == source]\n                if len(temp) > 0:\n                    self.announce_new_or_deleted(temp, source, deleted)\n\n    def announce_new_or_deleted(self, df, source="", deleted=False):\n        count = 1\n        if not deleted:\n            announce_lines_on_discord(\n                f"New {source} lines just dropped \xf0\x9f\x91\x87\xf0\x9f\x91\x87\xf0\x9f\x91\x87", everyone=False, gamba_num=3 if source == "PrizePicks" else 2)\n        else:\n            announce_lines_on_discord(\n                f"Old {source} lines deleted \xf0\x9f\x99\x85\xe2\x9d\x8c\xf0\x9f\x93\x89", everyone=False, gamba_num=3 if source == "PrizePicks" else 2)\n        df["max_bet_prob_or_complement"] = np.maximum(\n            df["bet_prob"], 1 - df["bet_prob"])\n        df = df.sort_values(by="max_bet_prob_or_complement", ascending=False)\n        for i in range(0, len(df), 10):\n            printed_str, count = self.print_ou_lines(\n                df.iloc[i:i + 10], count, quiet=True)\n            announce_lines_on_discord(\n                printed_str, everyone=False, code_text=True, gamba_num=3 if source == "PrizePicks" else 2)\n            time.sleep(0.5)\n\n    def debug(self, msg, everyone=False):\n        send_discord_debug(msg, everyone)\n'
+        ```'''
+    print(openai_client.encoder.encode(prompt))
+    completion = openai_client.get_completion(prompt, with_function=False)
+    content = completion["content"]
+    print(completion)
+    print(content)

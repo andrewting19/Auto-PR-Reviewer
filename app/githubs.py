@@ -86,8 +86,8 @@ class GithubClient:
     def get_file_comments(self, prompt):
         try:
             completion = self.openai_client.get_completion(prompt, with_function=False)
-            if completion is not None and "contents" in completion:
-                return completion["contents"]
+            if completion is not None and "content" in completion:
+                return completion["content"]
             return None
         except Exception as e:
             print(f"OpenAI failed on prompt {prompt} with exception {e}")
@@ -138,7 +138,8 @@ class GithubClient:
             print(prompt)
             print("-----")
             print(comments)
-            pr.create_review_comment(body=comments, commit=latest_commit, path=filename, subject_type="file")
+            if comments is not None:
+                pr.create_review_comment(body=comments, commit=latest_commit, path=filename, subject_type="file")
 
     def review_pr(self, payload):
         '''Review a PR'''
