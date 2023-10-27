@@ -128,10 +128,7 @@ class OpenAIClient:
 
     def get_file_prompt_contents(self, title, body, filename, contents) -> str:
         return f"""        
-        ### Pull Request Title: {title}
-
-        ### Pull Request Description: 
-        {body}
+        ### Please respond with your feedback for this file in the requested format.
 
         ### Contents for file {filename}:
         ```
