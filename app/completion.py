@@ -29,14 +29,18 @@ class OpenAIClient:
                            openai.error.APIConnectionError,
                            openai.error.ServiceUnavailableError),
                           max_time=300)
-    def get_completion(self, prompt, with_function=True) -> str:
-        if self.model.startswith("gpt-"):
-            return self.get_completion_chat(prompt, with_function)
+    def get_image(self, prompt, size=1024, n=1):
+        return openai.Image.create(prompt=prompt, n=n, size=f"{size}x{size}")['data'][0]['url']
 
-    def get_completion_chat(self, prompt, with_function=True) -> str:
+    @backoff.on_exception(backoff.expo,
+                          (openai.error.RateLimitError,
+                           openai.error.APIConnectionError,
+                           openai.error.ServiceUnavailableError),
+                          max_time=300)
+    def get_completion(self, prompt, sys_prompt=system_prompt, with_function=True) -> str:
         '''Invoke OpenAI API to get chat completion'''
         messages = [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": sys_prompt},
             {"role": "user", "content": prompt},
         ]
         functions = [
@@ -94,20 +98,6 @@ class OpenAIClient:
                 stream=False, **self.openai_kwargs)
         return response.choices[0].message
 
-    def get_completion_text(self, prompt) -> str:
-        '''Invoke OpenAI API to get text completion'''
-        prompt_message = f'{system_prompt}\n{prompt}'
-        response = openai.Completion.create(
-            prompt=prompt_message,
-            temperature=self.temperature,
-            best_of=1,
-            frequency_penalty=self.frequency_penalty,
-            presence_penalty=self.presence_penalty,
-            request_timeout=100,
-            max_tokens=self.max_tokens - len(self.encoder.encode(prompt_message)),
-            stream=False, **self.openai_kwargs)
-        return response.choices[0].message
-
     def get_pr_prompt(self, title, body, changes) -> str:
         '''Generate a prompt for a PR review'''
         return f"""
@@ -151,11 +141,19 @@ class OpenAIClient:
 
 
 if __name__ == "__main__":
+    import githubs
     openai_client = OpenAIClient(
         model="gpt-3.5-turbo",
         temperature=0.2,
         frequency_penalty=0,
         presence_penalty=0)
+    github_client = githubs.GithubClient(
+        openai_client=openai_client,
+        review_per_file=True,
+        comment_per_file=False,
+        blocking=False)
+    prompt, img = github_client.generate_meme_image_url()
+    print(img)
     prompt = '''
     ### Pull Request Title: test
 

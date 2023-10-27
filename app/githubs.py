@@ -4,6 +4,7 @@
 import json
 import os
 import requests
+import random
 from github import Github
 
 
@@ -126,6 +127,32 @@ class GithubClient:
         pr.create_review(list(pr.get_commits())[-1], body=review_body,
                          event=review_status)  # , comments=review_comments)
 
+    def generate_meme_image_url(self):
+        seed = "❤️🎃✅🔥💀🫶✨😊😂⭐👻👍✔️🎉👉👀👇🌔😭🚀🥹➡️👋😉🙏🫡😍🤔💪🤓"
+        seed = seed[random.randint(0, len(seed) - 1)]
+        system_prompt = "You are a creative meme generator. Your task is to take a random emoji as a seed and generate a prompt that an image generation model will use to create a meme. The meme should be funny and relatable to engineers and employees of the crypto startup Uniswap Labs. Use the emoji to inspire the theme or subject of the meme. Let's make some memes!"
+        try:
+            prompt = f"Respond with 10 descriptive words based on this emoji that could be used to generate a funny meme: {seed}. Respond with the 10 words and nothing else, don't enumerate them either."
+            meme_prompt = self.openai_client.get_completion(prompt,
+                                                            system_prompt, with_function=False)
+            print(seed, prompt)
+            if meme_prompt is None or "content" not in meme_prompt:
+                return None
+            meme_prompt = meme_prompt["content"]
+            return meme_prompt, self.openai_client.get_image(f"cartoon internet meme celebration {meme_prompt}")
+        except Exception as e:
+            print(f"OpenAI failed on meme prompt generation with exception {e}")
+            return None
+
+    def add_review_meme(self, pr):
+        res = self.generate_meme_image_url()
+        if res is None:
+            return
+        print(res)
+        prompt, image_url = res
+        pr.create_review(list(pr.get_commits())[-1], body=f"Great work!\n\n ![meme]({image_url})",
+                         event="COMMENT")
+
     def review_by_files(self, pr):
         repo = self.github_client.get_repo(os.getenv("GITHUB_REPOSITORY"))
         latest_commit = list(pr.get_commits())[-1]
@@ -140,6 +167,7 @@ class GithubClient:
             print(comments)
             if comments is not None:
                 pr.create_review_comment(body=comments, commit=latest_commit, path=filename, subject_type="file")
+        self.add_review_meme(pr)
 
     def review_pr(self, payload):
         '''Review a PR'''
