@@ -134,6 +134,10 @@ class GithubClient:
             file_contents = repo.get_contents(filename, ref=latest_commit.sha).decoded_content
             prompt = self.openai_client.get_file_prompt_contents(pr.title, pr.body, filename, file_contents)
             comments = self.get_file_comments(prompt)
+            print("-----")
+            print(prompt)
+            print("-----")
+            print(comments)
             pr.create_review_comment(body=comments, commit=latest_commit, path=filename, subject_type="file")
 
     def review_pr(self, payload):
