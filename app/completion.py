@@ -128,7 +128,7 @@ class OpenAIClient:
 
     def get_file_prompt_contents(self, title, body, filename, contents) -> str:
         return f"""        
-        ### Please respond with your feedback for this file in the requested format.
+        ### Please respond with your feedback for this file. Each point of feedback should include severity, line, and comment.
 
         ### Contents for file {filename}:
         ```
