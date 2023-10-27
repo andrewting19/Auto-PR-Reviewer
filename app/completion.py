@@ -62,7 +62,7 @@ class OpenAIClient:
                                     },
                                     "body": {
                                         "type": "string",
-                                        "description": "The text of the review comment"
+                                        "description": "The text of the review comment containing feedback"
                                     }
                                 },
                                 "required": ["severity", "line", "body"]
@@ -81,7 +81,7 @@ class OpenAIClient:
             frequency_penalty=self.frequency_penalty,
             presence_penalty=self.presence_penalty,
             request_timeout=100,
-            max_tokens=self.max_tokens - len(self.encoder.encode(f'{system_prompt}\n{prompt}')),
+            max_tokens=self.max_tokens,
             stream=False, **self.openai_kwargs)
         return response.choices[0].message
 

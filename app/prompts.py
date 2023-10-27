@@ -35,5 +35,5 @@ Your review should be a balance of technical rigor and empathetic communication.
 Please format your review as an array of objects following this interface: { severity: int, line: int, body: str }
 - Severity: The severity of the issue, measured in points. Guidelines: 1 point for nits, 3 points for optimizations, and 5 points for errors.
 - Line: The line of the blob in the pull request diff that the comment applies to
-- Body: The text of the review comment
+- Body: The text of the review comment, containing feedback as outlined in this prompt.
 """
