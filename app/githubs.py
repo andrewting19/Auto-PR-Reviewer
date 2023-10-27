@@ -98,6 +98,7 @@ class GithubClient:
                 pr.title, pr.body, file.filename, file_changes)
             issues = self.get_issues(prompt)
             for issue in issues:
+                print(prompt)
                 print(issue)
                 severity = issue.get("severity", 0)
                 line = issue.get("line", -1)
