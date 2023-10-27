@@ -104,7 +104,12 @@ class GithubClient:
                 body = issue.get("body", "")
 
                 # Create a review comment on the file
-                review_comments.append(self.submit_pr_comment(pr, file.filename, severity, line, body))
+                self.submit_pr_comment(pr, file.filename, severity, line, body)
+                review_comments.append({
+                    "path": file.filename,
+                    "body": body,
+                    "line": line,
+                })
                 total_severity += severity
 
         review_status = "APPROVED" if total_severity < 5 else "REQUEST_CHANGES"
