@@ -150,7 +150,7 @@ class GithubClient:
             return
         print(res)
         prompt, image_url = res
-        pr.create_review(list(pr.get_commits())[-1], body=f"Great work!\n\n ![meme]({image_url})",
+        pr.create_review(list(pr.get_commits())[-1], body=f"Great work! Here's a congratulatory AI generated meme!\n\n ![meme]({image_url})",
                          event="COMMENT")
 
     def review_by_files(self, pr):
