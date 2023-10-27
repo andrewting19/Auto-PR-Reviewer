@@ -157,16 +157,19 @@ class GithubClient:
         repo = self.github_client.get_repo(os.getenv("GITHUB_REPOSITORY"))
         latest_commit = list(pr.get_commits())[-1]
         for file in latest_commit.files:
-            filename = file.filename
-            file_contents = repo.get_contents(filename, ref=latest_commit.sha).decoded_content
-            prompt = self.openai_client.get_file_prompt_contents(pr.title, pr.body, filename, file_contents)
-            comments = self.get_file_comments(prompt)
-            print("-----")
-            print(prompt)
-            print("-----")
-            print(comments)
-            if comments is not None:
-                pr.create_review_comment(body=comments, commit=latest_commit, path=filename, subject_type="file")
+            try:
+                filename = file.filename
+                file_contents = repo.get_contents(filename, ref=latest_commit.sha).decoded_content
+                prompt = self.openai_client.get_file_prompt_contents(pr.title, pr.body, filename, file_contents)
+                comments = self.get_file_comments(prompt)
+                print("-----")
+                print(prompt)
+                print("-----")
+                print(comments)
+                if comments is not None:
+                    pr.create_review_comment(body=comments, commit=latest_commit, path=filename, subject_type="file")
+            except Exception as e:
+                print(f"Failed {filename} with error: {e}")
         self.add_review_meme(pr)
 
     def review_pr(self, payload):
