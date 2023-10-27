@@ -128,3 +128,6 @@ class OpenAIClient:
         """
 
 
+if __name__ == "__main__":
+    from secret import *
+    openai.api_key = OPENAI_API_KEY

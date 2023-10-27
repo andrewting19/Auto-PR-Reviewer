@@ -117,14 +117,14 @@ class GithubClient:
         pr.create_review(list(pr.get_commits())[-1], body=review_body, event=review_status, comments=review_comments)
 
     def submit_pr_comment(self, pr, filename, severity, line, body):
-        content = f"""Severity: {severity}\n\n{body}"""
-        if line < 0:
-            return pr.create_review_comment(body=content,
-                                     commit=list(pr.get_commits())[-1],
-                                     path=filename,
-                                     subject_type="file")
-        else:
-            return pr.create_review_comment(body=content,
-                                     commit=list(pr.get_commits())[-1],
-                                     path=filename,
-                                     line=line)
+        content = f"""Severity: {severity}\nLine: {line}\n\n{body}"""
+        # if line < 0:
+        return pr.create_review_comment(body=content,
+                                 commit=list(pr.get_commits())[-1],
+                                 path=filename,
+                                 subject_type="file")
+        # else:
+        #     return pr.create_review_comment(body=content,
+        #                              commit=list(pr.get_commits())[-1],
+        #                              path=filename,
+        #                              line=line)
