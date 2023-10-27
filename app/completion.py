@@ -14,7 +14,7 @@ class OpenAIClient:
     '''OpenAI API client'''
 
     def __init__(self, model, temperature, frequency_penalty, presence_penalty,
-                 max_tokens=4000, min_tokens=256):
+                 max_tokens=8000, min_tokens=256):
         self.model = model
         self.temperature = temperature
         self.frequency_penalty = frequency_penalty
