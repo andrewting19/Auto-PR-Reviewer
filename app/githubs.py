@@ -115,7 +115,7 @@ class GithubClient:
 
         review_status = "APPROVED" if total_severity < 5 else "REQUEST_CHANGES"
         review_body = f"Total Severity: {total_severity}\nStatus: {review_status}\nTotal Comments: {len(review_comments)}"
-        pr.create_review(list(pr.get_commits())[-1], body=review_body, event=review_status, comments=review_comments)
+        pr.create_review(list(pr.get_commits())[-1], body=review_body, event=review_status) #, comments=review_comments)
 
     def submit_pr_comment(self, pr, filename, severity, line, body):
         content = f"""Severity: {severity}\nLine: {line}\n\n{body}"""

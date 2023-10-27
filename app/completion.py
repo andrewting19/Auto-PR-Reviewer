@@ -121,7 +121,7 @@ class OpenAIClient:
         ### Pull Request Body: 
         {body}
 
-        ### Changes for file {filename}:
+        ### Changes for file {filename}. Removed lines begin with minus (-). Added lines begin with plus (+):
         ```
         {changes}
         ```
